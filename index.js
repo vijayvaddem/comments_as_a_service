@@ -15,15 +15,16 @@ const commentsByPostID = {};
 
 app.post("/posts/:id/comments", (req, res) => {
   const commentId = randomBytes(4).toString("hex");
-  const { content } = req.body;
+  const { commentText } = req.body;
 
+  console.log("Comment content received to svc", commentText);
   //get the existing comments for a given post.
   const comments = commentsByPostID[req.params.id] || [];
 
   //push new comment
   comments.push({
     id: commentId,
-    content,
+    commentText,
   });
 
   //add it back to original array
