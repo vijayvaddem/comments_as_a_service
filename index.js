@@ -26,6 +26,7 @@ app.post("/posts/:id/comments", async (req, res) => {
   comments.push({
     id: commentId,
     commentText,
+    status: "pending",
   });
 
   //add it back to original array
@@ -37,6 +38,7 @@ app.post("/posts/:id/comments", async (req, res) => {
     data: {
       id: comments,
       commentText,
+      status: "pending",
       documentId: req.params.id,
     },
   });
