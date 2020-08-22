@@ -12,15 +12,15 @@ app.listen("4001", () => {
   console.log("Client is listening on 4001");
 });
 
-const commentsByPostID = {};
+const commentsByDocumentID = {};
 
 app.post("/posts/:id/comments", async (req, res) => {
   const commentId = randomBytes(4).toString("hex");
   const { commentText } = req.body;
 
-  //console.log("Comment content received to svc", commentText);
+  console.log("Comment content received to svc", commentText);
   //get the existing comments for a given post.
-  const comments = commentsByPostID[req.params.id] || [];
+  const comments = commentsByDocumentID[req.params.id] || [];
 
   //push new comment
   comments.push({
@@ -30,13 +30,13 @@ app.post("/posts/:id/comments", async (req, res) => {
   });
 
   //add it back to original array
-  commentsByPostID[req.params.id] = comments;
+  commentsByDocumentID[req.params.id] = comments;
 
   //post to event bus
   await axios.post("http://localhost:4005/events", {
     type: "commentCreated",
     data: {
-      id: comments,
+      id: commentId,
       commentText,
       status: "pending",
       documentId: req.params.id,
@@ -47,11 +47,45 @@ app.post("/posts/:id/comments", async (req, res) => {
 });
 
 app.get("/posts/:id/comments", (req, res) => {
-  res.send(commentsByPostID[req.params.id] || []);
+  res.send(commentsByDocumentID[req.params.id] || []);
 });
 
 //post handler for incoming events request
-app.post("/event", (req, res) => {
+app.post("/event", async (req, res) => {
   console.log("Incoming event received for comment:", req.body.type);
+
+  /*  id: commentId,
+      commentText,
+      status: "pending",
+      documentId: req.params.id,
+      */
+  //Update the status of the comment coming from event service
+  const { type, data } = req.body;
+  if (type === "commentModerated") {
+    const { id, commentText, status, documentId } = data;
+    console.log("Comment moderated data:", data);
+    //{ commentText: 'sss', status: 'approved', documentId: 'af147003' }
+    const comments = commentsByDocumentID[documentId];
+
+    const comment = comments.find((comment) => {
+      console.log("ID of incoming comment:", id);
+      console.log("comparing with comment:", comment);
+      return (comment.id = id);
+    });
+
+    comment.status = status;
+
+    //send back event communication to eventbus with updated status to the comment.
+    await axios.post("http://localhost:4005/events", {
+      type: "commentUpdated",
+      data: {
+        id,
+        status,
+        documentId,
+        commentText,
+      },
+    });
+  }
+
   res.send({});
 });
