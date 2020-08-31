@@ -14,9 +14,10 @@ app.listen("4001", () => {
 
 const commentsByDocumentID = {};
 
-app.post("/posts/:id/comments", async (req, res) => {
+app.post("/document/:id/comments", async (req, res) => {
   const commentId = randomBytes(4).toString("hex");
-  const { commentText } = req.body;
+  console.log("BODY====>", req.body);
+  const commentText = req.body.commentText;
 
   console.log("Comment content received to svc", commentText);
   //get the existing comments for a given post.
@@ -33,7 +34,7 @@ app.post("/posts/:id/comments", async (req, res) => {
   commentsByDocumentID[req.params.id] = comments;
 
   //post to event bus
-  await axios.post("http://event-bus-srv:4005/events", {
+  await axios.post("http://event-bus-svc:4005/events", {
     type: "commentCreated",
     data: {
       id: commentId,
@@ -46,7 +47,7 @@ app.post("/posts/:id/comments", async (req, res) => {
   res.status(201).send(comments);
 });
 
-app.get("/posts/:id/comments", (req, res) => {
+app.get("/document/:id/comments", (req, res) => {
   res.send(commentsByDocumentID[req.params.id] || []);
 });
 
@@ -76,7 +77,7 @@ app.post("/event", async (req, res) => {
     comment.status = status;
 
     //send back event communication to eventbus with updated status to the comment.
-    await axios.post("http://event-bus-srv:4005/events", {
+    await axios.post("http://event-bus-svc:4005/events", {
       type: "commentUpdated",
       data: {
         id,
